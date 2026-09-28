@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Action Upcycling</title>
+<meta name="description" content="Don't Throw Away the Tail: Action Upcycling for Policy Acceleration. A training-free rule that reuses discarded action-chunk tails to cut VLA policy calls by 1.2–1.7× with no loss in success.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{
+  --bg:#ffffff; --fg:#1a1a1a; --muted:#5f6368; --line:#e6e6e6; --soft:#f6f7f9;
+  --accent:#2f6fed; --accent-soft:#e8f0fe; --ours:#1f8a4c; --ours-soft:#e6f4ea;
+  --base:#6b7280; --fail:#c62828; --fail-soft:#fdecea; --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:1100px;margin:0 auto;padding:0 16px}
+.narrow{max-width:820px;margin:0 auto}
+section{padding:56px 0;border-top:1px solid var(--line)}
+section:first-of-type{border-top:0}
+h1{font-size:clamp(28px,4.4vw,44px);line-height:1.2;font-weight:700;margin:0 0 6px;letter-spacing:-0.01em}
+h1 .pre{display:block;font-weight:500;color:var(--muted)}
+h1 .main{color:var(--fg);font-weight:800}
+h1 .post{font-weight:500;color:var(--muted)}
+h2{font-size:30px;font-weight:700;margin:0 0 24px;text-align:center;letter-spacing:-0.01em}
+h3{font-size:20px;font-weight:600;margin:32px 0 10px}
+p{margin:0 0 14px}
+.muted{color:var(--muted)}
+.center{text-align:center}
+.small{font-size:14.5px}
+/* header */
+header{padding:64px 0 28px;text-align:center}
+.authors{font-size:18px;margin:20px auto 4px;max-width:760px;display:flex;flex-wrap:wrap;justify-content:center;gap:4px 24px}
+.author{font-weight:500;color:var(--fg)}
+.affil{font-size:16px;color:var(--muted);margin-bottom:4px}
+.venue{color:var(--muted);font-size:16px}
+.btns{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:22px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:999px;background:#222;color:#fff;font-weight:500;font-size:15px}
+.btn:hover{background:#000;text-decoration:none}
+.btn.disabled{background:#9aa0a6;cursor:default}
+.btn svg{width:16px;height:16px;fill:currentColor}
+/* teaser */
+.teaser{margin-top:30px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.pair .cell{position:relative;border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--line)}
+video{display:block;width:100%;height:auto;background:#000}
+.tag{position:absolute;top:10px;left:10px;padding:4px 10px;border-radius:6px;font-size:13px;font-weight:600;color:#fff;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}
+.tag.ours{background:rgba(31,138,76,.9)}
+.tag.base{background:rgba(70,70,70,.85)}
+.badge{position:absolute;top:10px;right:10px;padding:4px 10px;border-radius:6px;font-size:13px;font-weight:600;color:#fff}
+.badge.ok{background:rgba(31,138,76,.92)}
+.badge.fail{background:rgba(198,40,40,.92)}
+.stat{position:absolute;bottom:0;left:0;right:0;padding:8px 12px;font-size:13px;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.72));font-family:var(--mono)}
+.caption{font-size:14.5px;color:var(--muted);margin-top:10px;text-align:center}
+.instr{display:inline-block;font-family:var(--mono);font-size:14px;background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin:6px 0 14px}
+.instr::before{content:"instruction: ";font-family:Inter,sans-serif;color:var(--muted)}
+/* key numbers */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:32px 0 0}
+.kpi{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:18px 16px;text-align:center}
+.kpi b{display:block;font-size:30px;font-weight:700;letter-spacing:-0.02em;color:var(--fg)}
+.kpi span{font-size:14px;color:var(--muted)}
+/* method */
+.method-fig{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:18px 18px 8px;margin:10px 0 22px}
+.method-fig svg{width:100%;height:auto;display:block}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}
+.step{border:1px solid var(--line);border-radius:12px;padding:18px}
+.step .n{display:inline-flex;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;align-items:center;justify-content:center;font-size:14px;margin-bottom:8px}
+.step h4{margin:0 0 8px;font-size:17px}
+.step p{font-size:15px;margin:0;color:#333}
+.eq{margin:10px 0 14px;overflow-x:auto}
+/* tables */
+.tbl-wrap{overflow-x:auto;margin:14px 0 8px}
+table{border-collapse:collapse;width:100%;font-size:14.5px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:600;background:var(--soft)}
+th.group{border-bottom:2px solid #d5d5d5}
+td.l,th.l{text-align:left}
+tr.sep td{border-top:2px solid #d5d5d5}
+td.ours{background:var(--ours-soft);font-weight:600}
+th.ours{background:#d7ecdd}
+td b{font-weight:700}
+td u{text-decoration-thickness:1.5px;text-underline-offset:3px}
+.up{color:var(--ours);font-size:12px;vertical-align:super}
+.tcap{font-size:14px;color:var(--muted);margin:8px 0 0}
+.tcap b{color:var(--fg)}
+.delta{font-size:12px;color:var(--ours);font-weight:600}
+/* bars */
+.bars{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px 28px;margin:26px 0 6px}
+.bar-group h5{margin:0 0 8px;font-size:14px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.bar-row{display:grid;grid-template-columns:92px 1fr 62px;align-items:center;gap:8px;font-size:13.5px;margin:5px 0}
+.bar-row .lab{color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{height:14px;border-radius:4px;background:var(--ours);position:relative}
+.bar.base{background:#c9cdd3}
+.bar-row .val{font-family:var(--mono);font-size:12.5px;text-align:right;color:#333}
+/* real */
+.setup{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:14px 0 26px}
+.setup .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 18px;font-size:15px}
+.setup .box h4{margin:0 0 8px;font-size:15px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.setup ul{margin:0;padding-left:18px}
+.setup li{margin:3px 0}
+.tabs{display:flex;gap:8px;justify-content:center;margin:26px 0 18px;flex-wrap:wrap}
+.tab{padding:8px 18px;border-radius:999px;border:1px solid var(--line);background:#fff;font-weight:500;cursor:pointer;font-size:15px}
+.tab.active{background:#222;color:#fff;border-color:#222}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px 18px}
+.task{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fff}
+.task .title{font-weight:600;font-size:16px;margin:0 0 2px}
+.task .meta{font-size:13.5px;color:var(--muted);margin-bottom:10px;font-family:var(--mono)}
+.task .pair{gap:8px}
+.task .pair .cell{border-radius:8px}
+.task .tag,.task .badge{font-size:11.5px;padding:3px 7px;top:6px}
+.task .tag{left:6px}.task .badge{right:6px}
+.task .stat{font-size:11.5px;padding:6px 8px}
+.show .task{padding:16px}
+.show .grid{grid-template-columns:1fr}
+.show .pair{grid-template-columns:1fr 1fr}
+.legend{display:flex;gap:16px;justify-content:center;font-size:14px;color:var(--muted);margin:6px 0 14px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle}
+
+/* speed control */
+.speed{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 12px;background:#fff;font-size:13.5px;color:var(--muted);box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.speed button{border:0;background:transparent;padding:4px 12px;border-radius:999px;font:inherit;font-weight:600;color:var(--fg);cursor:pointer;font-family:var(--mono)}
+.speed button:hover{background:var(--soft)}
+.speed button.active{background:#222;color:#fff}
+.speedbar{position:sticky;top:10px;z-index:5;display:flex;justify-content:center;margin:0 0 14px;pointer-events:none}
+.speedbar .speed{pointer-events:auto}
+
+/* method animation */
+.anim-ctl{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 4px 6px;font-size:14px}
+.abtn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;font:inherit;font-weight:600;cursor:pointer;min-width:84px}
+.abtn:hover{background:#eef0f3}
+.aspeed{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:999px;padding:3px 5px 3px 10px;background:#fff;font-size:13px;color:var(--muted)}
+.aspeed button{border:0;background:transparent;padding:3px 10px;border-radius:999px;font:inherit;font-weight:600;color:var(--fg);cursor:pointer;font-family:var(--mono)}
+.aspeed button.active{background:#222;color:#fff}
+.anim-status{flex:1;min-width:240px;color:#333;font-size:14px;font-family:var(--mono)}
+
+/* carousel */
+.carousel{display:grid;grid-template-columns:44px 1fr 44px;gap:12px;align-items:start}
+.cbtn{position:sticky;top:45vh}
+.cbtn{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:#fff;font-size:26px;line-height:1;cursor:pointer;color:var(--fg);display:flex;align-items:center;justify-content:center;padding:0 0 3px}
+.cbtn:hover{background:var(--soft)}
+.cview{display:grid;gap:14px}
+.cview .task{padding:16px}
+.cview .pair{grid-template-columns:1fr 1fr;gap:12px}
+.cview .task .tag,.cview .task .badge{font-size:13px;padding:4px 10px;top:10px}
+.cview .task .tag{left:10px}.cview .task .badge{right:10px}
+.cview .task .stat{font-size:13px;padding:8px 12px}
+.cview .task .title{font-size:17px}
+.cidx{float:right;font-family:var(--mono);font-size:13px;color:var(--muted);font-weight:400}
+.cdots{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;margin-top:14px}
+.cpage{font-family:var(--mono);font-size:13px;color:var(--muted);margin-right:6px}
+.cdot{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer;color:#333}
+.cdot.active{background:var(--ours-soft);border-color:var(--ours);color:var(--ours);font-weight:600}
+@media (max-width:560px){.carousel{grid-template-columns:36px 1fr 36px;gap:6px}.cbtn{width:36px;height:36px;font-size:22px}}
+
+/* pair-sync overlay (PAIR_SYNC) */
+.done{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.30);pointer-events:none}
+.done.show{display:flex}
+.done span{background:rgba(20,20,20,.78);color:#fff;font-weight:600;font-size:14px;padding:8px 14px;border-radius:8px;font-family:var(--mono);letter-spacing:.01em}
+.task .done span{font-size:12.5px;padding:6px 10px}
+
+/* advantage table */
+.adv-wrap{margin:26px auto 0;max-width:820px}
+.adv{border:1px solid #d5d5d5;border-radius:12px;border-collapse:separate;border-spacing:0;overflow:hidden;font-size:15px}
+.adv th{background:var(--soft);padding:12px 16px;font-size:15.5px;font-weight:700;text-align:center;border-bottom:1px solid #d5d5d5}
+.adv th.l{background:#fff;border-right:1px solid var(--line)}
+.adv td{padding:13px 16px;text-align:left;white-space:normal;vertical-align:middle;border-bottom:1px solid var(--line);line-height:1.5}
+.adv td.l{width:36%;font-weight:600;color:#333;background:var(--soft);border-right:1px solid var(--line);text-align:center}
+.adv tr:last-child td{border-bottom:0}
+@media (max-width:560px){.adv td.l{width:38%;font-size:14px}.adv td{font-size:14px}}
+/* bibtex */
+pre{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 18px;font-family:var(--mono);font-size:13.5px;overflow-x:auto;line-height:1.5}
+footer{padding:36px 0 48px;color:var(--muted);font-size:14px;text-align:center;border-top:1px solid var(--line)}
+@media (max-width:820px){
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .steps{grid-template-columns:1fr}
+  .setup{grid-template-columns:1fr}
+  .grid{grid-template-columns:1fr}
+  h2{font-size:26px}
+  body{font-size:16px}
+}
+@media (max-width:560px){
+  .pair{grid-template-columns:1fr}
+  .show .pair{grid-template-columns:1fr}
+  .task .pair{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <h1>
+    <span class="pre">Don't Throw Away the Tail:</span>
+    <span class="main">Action Upcycling</span> <span class="post">for Policy Acceleration</span>
+  </h1>
+  <div class="authors">
+    <span class="author">Taesung Kwon</span>
+    <span class="author">Jangho Park</span>
+    <span class="author">Youngjun Jun</span>
+    <span class="author">Kyumin Choi</span>
+    <span class="author">Sunwoo Park</span>
+    <span class="author">Youngmin Kim</span>
+    <span class="author">Seonghyun Jin</span>
+    <span class="author">Jong Chul Ye</span>
+  </div>
+  <div class="affil">KAIST</div>
+  <div class="btns">
+    <a class="btn" href="#" title="Paper PDF">
+      <svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zm8 1.5V8h4.5L14 3.5zM8 12v2h8v-2H8zm0 4v2h8v-2H8z"/></svg>Paper</a>
+    <a class="btn disabled" href="#" title="Code coming soon">
+      <svg viewBox="0 0 24 24"><path d="M9.4 16.6 4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0 4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>Code (coming soon)</a>
+    <a class="btn" href="#real">
+      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5z"/></svg>Real-robot videos</a>
+  </div>
+</header>
+
+<!-- ================= TEASER ================= -->
+<section class="wrap" style="padding-top:10px">
+  <div class="teaser">
+    <div class="center" style="display:flex;flex-wrap:wrap;gap:10px 16px;justify-content:center;align-items:center;margin-bottom:12px">
+      <span class="instr" id="hero-instr" style="margin:0"></span>
+      <div class="speed"><span>Playback</span><button data-r="1" class="active">×1</button><button data-r="2">×2</button><button data-r="5">×5</button></div>
+    </div>
+    <div class="pair" id="hero"></div>
+    <p class="caption">
+      <b>Same policy (π0.5), same checkpoint, same episode index; the only difference is <em>when</em> the policy is re-queried.</b>
+      Left: the standard protocol re-plans every 15 ticks on a fixed clock and discards the remaining 35 actions of each chunk.
+      Right: Action Upcycling keeps executing the tail while its velocity stays smooth.
+      Top-down camera on the left of each frame, wrist camera on the right.
+    </p>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><b>1.2–1.7×</b><span>fewer policy calls in simulation</span></div>
+    <div class="kpi"><b>11 / 11</b><span>model × benchmark cells with success ≥ baseline</span></div>
+    <div class="kpi"><b>48.3 → 34.0</b><span>VLA calls per episode on a real YAM arm (π0.5), 72/80 → 77/80 success</span></div>
+    <div class="kpi"><b>0</b><span>training, extra samples, or model internals required</span></div>
+  </div>
+</section>
+
+<!-- ================= ABSTRACT ================= -->
+<section class="wrap">
+  <div class="narrow">
+    <h2>Abstract</h2>
+    <p>Chunked robot policies predict \(H\) actions per call, execute a short prefix, and throw the rest away before replanning, so reactivity is paid for with frequent policy calls.
+    <b>Action Upcycling</b> is a training-free rule that keeps executing the discarded tail while the predicted action velocity stays smooth, reading nothing but the action chunk itself.
+    Across four policies, three simulation benchmarks, and a real robot, it cuts policy calls by 1.2–1.7× with no loss in success rate.</p>
+
+    <div class="adv-wrap">
+    <table class="adv">
+      <thead><tr><th class="l"></th><th>Action Upcycling</th></tr></thead>
+      <tbody>
+        <tr><td class="l">Policy acceleration</td><td><b>1.2–1.7× fewer policy calls</b> · success rate ≥ baseline</td></tr>
+        <tr><td class="l">Model-agnostic</td><td>Compatible with <b>VLA</b> (π0.5, SmolVLA, GR00T) · <b>WAM</b> (FastWAM)</td></tr>
+        <tr><td class="l">Training-free</td><td>No fine-tuning · no architecture change</td></tr>
+        <tr><td class="l">Complementary</td><td>Stacks with other policy acceleration methods (few-step sampling, streaming decoding) · up to <b>6.7×</b></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</section>
+
+<!-- ================= METHOD ================= -->
+<section class="wrap" id="method">
+  <h2>Method</h2>
+  <div class="narrow">
+    <p>A chunked policy \(\pi\) predicts \(H\) actions per call, \(A=\pi(o_t)=(a_1,\dots,a_H)\), executes the prefix \(a_1,\dots,a_h\), and discards the tail.
+    Action Upcycling reuses the trustworthy part of the tail, so that the \(i\)-th call executes \(h+\Delta h_i\) actions. With the mean execution length \(\bar h = \frac{1}{N}\sum_i (h+\Delta h_i)\), the <b>upcycling ratio</b> \(r = \bar h / h \in [1, H/h]\) gives the reduction in policy calls: \(r=2\) halves the calls and \(r=1\) recovers the default setting.
+    Everything is computed from the predicted chunk itself: no gradients, no attention maps, no extra samples.</p>
+  </div>
+
+  <div class="method-fig" id="anim-wrap">
+    <svg id="anim" viewBox="0 0 1000 390" xmlns="http://www.w3.org/2000/svg" font-family="Inter,system-ui,sans-serif" aria-label="Animated overview of Action Upcycling"></svg>
+    <div class="anim-ctl">
+      <button id="anim-play" class="abtn">Pause</button>
+      <button id="anim-replay" class="abtn">Replay</button>
+      <div class="aspeed"><span>Speed</span><button data-s="0.5">×0.5</button><button data-s="1" class="active">×1</button><button data-s="2">×2</button></div>
+      <div class="anim-status" id="anim-status"></div>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="step"><span class="n">1</span>
+      <h4>Velocity fluctuation as a signal</h4>
+      <p>Let \(v_k\) be the velocity induced by action \(a_k\) (\(v_k=a_k\) for relative actions, \(v_k=a_k-a_{k-1}\) for absolute ones). Accumulate the fluctuation from the first tail action onward:</p>
+      <div class="eq">\[c_k=\sum_{j=h+1}^{k}\lVert v_j-v_{j-1}\rVert_2,\quad h&lt;k\le H\]</div>
+      <p>\(c_k\) is non-decreasing, stays small while the predicted motion is steady, and rises once it fluctuates. Empirically, the gap between a discarded action and its replanned version grows with \(c_k\).</p>
+    </div>
+    <div class="step"><span class="n">2</span>
+      <h4>Adaptive horizon selection</h4>
+      <p>Given a threshold \(\tau\), execute the tail while the accumulated fluctuation stays below it:</p>
+      <div class="eq">\[h_{\text{exec}}(A;\tau)=\max_{c_k\le\tau} k,\quad h\le k\le H\]</div>
+      <p>\(\tau=0\) recovers the standard protocol and \(\tau=\infty\) executes whole chunks. The next policy call is issued when the gate stops instead of on a fixed clock.</p>
+    </div>
+    <div class="step"><span class="n">3</span>
+      <h4>Threshold from a target ratio</h4>
+      <p>\(\Delta h_i\) is non-decreasing in \(\tau\), so the ratio \(r\) grows with \(\tau\) and the threshold for a target \(r\) is found by a simple search. Collect the tail signals \(c_{h+1},\dots,c_H\) of predicted chunks into a pool \(\mathcal C\), which needs no extra rollouts because \(c_k\) depends only on the chunk, and pick the smallest \(\tau\in\mathcal C\) with \(\bar h(\tau)\ge r\,h\).</p>
+      <p>The pool comes from the policy's own rollouts, without demonstrations or success labels. One scalar \(\tau\) per model and benchmark, fixed offline; no per-task tuning, no run-time adaptation.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SIMULATION ================= -->
+<section class="wrap" id="sim">
+  <h2>Simulation Results</h2>
+
+  <div class="narrow">
+    <p>We apply Action Upcycling to the released checkpoints of <b>π0.5</b>, <b>SmolVLA</b>, <b>GR00T N1.7</b>, and <b>FastWAM</b> (a world action model) without any fine-tuning, on <b>LIBERO</b> (2,000 trials), <b>LIBERO-Plus</b> (504 perturbed trials), and <b>RoboTwin 2.0</b> (50 bimanual tasks, clean and randomized settings).
+    The baseline is each model's standard deployment protocol.</p>
+  </div>
+
+  <h3>Main result: success rate and policy calls</h3>
+  <div class="tbl-wrap">
+  <table>
+    <thead>
+      <tr><th class="l" rowspan="2">Benchmark</th><th class="l" rowspan="2">Model</th><th colspan="3" class="group">Baseline policy</th><th colspan="3" class="group ours">+ Action Upcycling</th></tr>
+      <tr><th>succ. ↑</th><th>calls / ep ↓</th><th>s / ep ↓</th><th class="ours">succ. ↑</th><th class="ours">calls / ep ↓</th><th class="ours">s / ep ↓</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="l" rowspan="4">LIBERO</td><td class="l">π0.5</td><td>96.9</td><td>32.4 (1×)</td><td>4.41</td><td class="ours">97.9 <span class="delta">(+1.0)</span></td><td class="ours">21.9 (1.5×)</td><td class="ours">3.00</td></tr>
+      <tr><td class="l">SmolVLA</td><td>82.6</td><td>19.3 (1×)</td><td>1.82</td><td class="ours">82.8 <span class="delta">(+0.2)</span></td><td class="ours">14.7 (1.3×)</td><td class="ours">1.39</td></tr>
+      <tr><td class="l">GR00T N1.7</td><td>96.1</td><td>22.6 (1×)</td><td>2.59</td><td class="ours">96.6 <span class="delta">(+0.5)</span></td><td class="ours">15.0 (1.5×)</td><td class="ours">1.72</td></tr>
+      <tr><td class="l">FastWAM</td><td>97.4</td><td>15.7 (1×)</td><td>1.32</td><td class="ours">97.6 <span class="delta">(+0.2)</span></td><td class="ours">13.4 (1.2×)</td><td class="ours">1.12</td></tr>
+      <tr class="sep"><td class="l" rowspan="4">LIBERO-Plus</td><td class="l">π0.5</td><td>83.7</td><td>38.5 (1×)</td><td>5.27</td><td class="ours">86.5 <span class="delta">(+2.8)</span></td><td class="ours">23.9 (1.6×)</td><td class="ours">3.27</td></tr>
+      <tr><td class="l">SmolVLA</td><td>31.8</td><td>29.4 (1×)</td><td>2.77</td><td class="ours">33.3 <span class="delta">(+1.5)</span></td><td class="ours">24.1 (1.2×)</td><td class="ours">2.27</td></tr>
+      <tr><td class="l">GR00T N1.7</td><td>82.1</td><td>36.4 (1×)</td><td>4.18</td><td class="ours">82.3 <span class="delta">(+0.2)</span></td><td class="ours">22.7 (1.6×)</td><td class="ours">2.61</td></tr>
+      <tr><td class="l">FastWAM</td><td>49.4</td><td>33.4 (1×)</td><td>2.79</td><td class="ours">49.6 <span class="delta">(+0.2)</span></td><td class="ours">22.5 (1.5×)</td><td class="ours">1.88</td></tr>
+      <tr class="sep"><td class="l" rowspan="3">RoboTwin 2.0</td><td class="l">π0.5</td><td>59.7</td><td>40.9 (1×)</td><td>6.22</td><td class="ours">60.5 <span class="delta">(+0.8)</span></td><td class="ours">29.8 (1.4×)</td><td class="ours">4.53</td></tr>
+      <tr><td class="l">SmolVLA</td><td>34.8</td><td>50.6 (1×)</td><td>5.77</td><td class="ours">47.4 <span class="delta">(+12.6)</span></td><td class="ours">29.7 (1.7×)</td><td class="ours">3.39</td></tr>
+      <tr><td class="l">FastWAM</td><td>89.5</td><td>10.6 (1×)</td><td>2.27</td><td class="ours">90.6 <span class="delta">(+1.1)</span></td><td class="ours">8.7 (1.2×)</td><td class="ours">1.86</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="tcap"><b>Table 1.</b> Success rate (%), policy calls per episode, and inference time per episode. Per-call latency is unchanged (π0.5 136 ms, SmolVLA 94 ms, GR00T 115 ms, FastWAM 84–214 ms), so the time saving equals the call reduction. Action Upcycling reduces policy calls by 1.2–1.7× and matches or improves success in all 11 cells. RoboTwin 2.0 covers all 50 tasks in both clean and randomized settings.</p>
+
+  <div class="legend" style="margin:22px 0 -8px"><span><i style="background:#c9cdd3"></i>Baseline policy</span><span><i style="background:var(--ours)"></i>+ Action Upcycling</span></div>
+  <div class="bars" id="bars"></div>
+  <p class="tcap center">Policy calls per episode. Shorter is better.</p>
+
+  <h3>Comparison with adaptive-horizon methods (π0.5)</h3>
+  <div class="tbl-wrap">
+  <table>
+    <thead>
+      <tr><th class="l" rowspan="2">Method</th><th colspan="3" class="group">LIBERO</th><th colspan="3" class="group">LIBERO-Plus</th><th colspan="3" class="group">RoboTwin 2.0</th></tr>
+      <tr><th>succ.</th><th>calls / ep</th><th>s / ep</th><th>succ.</th><th>calls / ep</th><th>s / ep</th><th>succ.</th><th>calls / ep</th><th>s / ep</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="l">Baseline</td><td>96.9</td><td>32.4 (1×)</td><td>4.41</td><td>83.7</td><td>38.5 (1×)</td><td>5.27</td><td><u>59.7</u></td><td>40.9 (1×)</td><td>6.22</td></tr>
+      <tr><td class="l">+ AAC (CVPR 2026), K = 20 samples</td><td>97.3</td><td>23.5 (1.38×)</td><td>18.9</td><td>84.5</td><td>27.1 (1.42×)</td><td>21.7</td><td>53.1</td><td>46.1 (0.89×)</td><td>42.9</td></tr>
+      <tr><td class="l">+ AutoHorizon (ECCV 2026), attention</td><td><u>97.4</u></td><td><u>22.3 (1.45×)</u></td><td><u>3.03</u></td><td><u>85.5</u></td><td><u>24.5 (1.57×)</u></td><td><u>3.33</u></td><td>56.8</td><td><b>28.0 (1.46×)</b></td><td><b>4.26</b></td></tr>
+      <tr><td class="l ours">+ Action Upcycling (ours)</td><td class="ours"><b>97.9</b></td><td class="ours"><b>21.9 (1.48×)</b></td><td class="ours"><b>3.00</b></td><td class="ours"><b>86.5</b></td><td class="ours"><b>23.9 (1.61×)</b></td><td class="ours"><b>3.27</b></td><td class="ours"><b>60.5</b></td><td class="ours"><u>29.8 (1.37×)</u></td><td class="ours"><u>4.53</u></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="tcap"><b>Table 2.</b> Success rate (%), policy calls per episode, and inference time per episode (s) of π0.5. Best in <b>bold</b>, second best <u>underlined</u>. AAC draws 20 chunks per call and stops where the samples disagree, so its per-call latency grows six- to seven-fold (802–930 ms) and its time per episode exceeds the baseline; on RoboTwin 2.0 it even calls the policy more often than the baseline (0.89×). AutoHorizon reads the action expert's self-attention; on RoboTwin 2.0 it cuts calls slightly more (1.46×) but drops success below the baseline (56.8 vs. 59.7). Action Upcycling reads only the predicted chunk, adds no latency, and achieves the highest success rate on all three benchmarks.</p>
+
+</section>
+
+<!-- ================= REAL WORLD ================= -->
+<section class="wrap" id="real">
+  <h2>Real-World Experiments</h2>
+  <div class="narrow">
+    <p>We deploy Action Upcycling on a <b>YAM</b> 6-DoF arm with a linear gripper, driven at 30 Hz from a top-down camera, a wrist camera, and the joint state.
+    We evaluate two policies fine-tuned on this arm, <b>π0.5</b> and <b>GR00T N1.6</b>.
+    π0.5 runs eight tasks and GR00T N1.6 runs four, each for 10 episodes under both protocols: 12 task–model cells × 2 protocols × 10 episodes = <b>240 real-world episodes</b> in total.</p>
+  </div>
+
+
+  <div class="videos-wrap">
+  <div class="speedbar"><div class="speed"><span>Playback</span><button data-r="1" class="active">×1</button><button data-r="2">×2</button><button data-r="5">×5</button></div></div>
+  <h3 style="margin-top:8px">Baseline comparison</h3>
+  <div class="legend"><span><i style="background:var(--ours)"></i>Ours</span><span><i style="background:#555"></i>Baseline</span><span><i style="background:var(--ours)"></i>success</span><span><i style="background:var(--fail)"></i>failure</span></div>
+  <div class="carousel">
+    <button class="cbtn" id="sprev" aria-label="Previous">&#8249;</button>
+    <div class="cview" id="showcase"></div>
+    <button class="cbtn" id="snext" aria-label="Next">&#8250;</button>
+  </div>
+  <div class="cdots" id="sdots"></div>
+
+  <h3>More results</h3>
+  <p class="muted small">Action Upcycling completes tasks faster than the baseline: time per episode drops from 24.9 s to 21.5 s with π0.5 and from 28.0 s to 24.9 s with GR00T N1.6, with fewer policy calls (Tables 3 and 4). Four tasks per page; use the arrows or the chips to browse.</p>
+  <div class="tabs" id="tabs"></div>
+  <div class="carousel">
+    <button class="cbtn" id="cprev" aria-label="Previous task">&#8249;</button>
+    <div class="cview" id="grid"></div>
+    <button class="cbtn" id="cnext" aria-label="Next task">&#8250;</button>
+  </div>
+  <div class="cdots" id="cdots"></div>
+  </div>
+  <h3>Results</h3>
+  <h4 style="margin:6px 0 4px;font-size:16px">π0.5 (H = 50, h = 15, r = 1.25)</h4>
+  <div class="tbl-wrap"><table><thead><tr><th class="l" rowspan="2">Task</th><th colspan="2" class="group">Success rate ↑</th><th colspan="2" class="group">Calls / ep ↓</th><th colspan="2" class="group">Time / ep (s) ↓</th></tr>
+<tr><th>Baseline</th><th class="ours">Ours</th><th>Baseline</th><th class="ours">Ours</th><th>Baseline</th><th class="ours">Ours</th></tr></thead><tbody>
+<tr><td class="l">Soccer ball → plate (layout 1)</td><td>10/10</td><td class="ours">10/10</td><td>26.9</td><td class="ours">26.8</td><td>14.4</td><td class="ours">17.4</td></tr>
+<tr><td class="l">Soccer ball → plate (layout 2)</td><td>10/10</td><td class="ours">10/10</td><td>36.5</td><td class="ours">20.7</td><td>19.0</td><td class="ours">12.9</td></tr>
+<tr><td class="l">Basketball → basket</td><td>10/10</td><td class="ours">10/10</td><td>31.3</td><td class="ours">24.9</td><td>16.5</td><td class="ours">15.8</td></tr>
+<tr><td class="l">Baseball → basket</td><td>10/10</td><td class="ours">10/10</td><td>32.1</td><td class="ours">25.0</td><td>17.1</td><td class="ours">16.1</td></tr>
+<tr><td class="l">Drawer: black ball → drawer</td><td>8/10</td><td class="ours">10/10<span class="up">▲</span></td><td>73.8</td><td class="ours">49.2</td><td>37.3</td><td class="ours">30.9</td></tr>
+<tr><td class="l">Drawer: basketball → drawer</td><td>8/10</td><td class="ours">8/10</td><td>61.2</td><td class="ours">40.7</td><td>31.6</td><td class="ours">25.5</td></tr>
+<tr><td class="l">Drawer: baseball → basket</td><td>7/10</td><td class="ours">9/10<span class="up">▲</span></td><td>67.9</td><td class="ours">40.6</td><td>34.3</td><td class="ours">25.5</td></tr>
+<tr><td class="l">Drawer: basketball → pot</td><td>9/10</td><td class="ours">10/10<span class="up">▲</span></td><td>56.9</td><td class="ours">44.5</td><td>28.7</td><td class="ours">27.8</td></tr>
+<tr class="sep"><td class="l"><b>Total / mean</b></td><td><b>72/80</b></td><td class="ours"><b>77/80</b></td><td><b>48.3</b></td><td class="ours"><b>34.0</b></td><td><b>24.9</b></td><td class="ours"><b>21.5</b></td></tr>
+</tbody></table></div>
+  <p class="tcap"><b>Table 3.</b> Real-world results with π0.5 on a YAM arm, 10 episodes per task. Success rises from 72/80 to 77/80 while policy calls per episode drop from 48.3 to 34.0 (1.42×). On the pick-and-place tasks the baseline already succeeds in every episode and calls drop by 1.30×; on the long-horizon drawer tasks success improves from 32/40 to 37/40 with 1.48× fewer calls. Time per episode also falls from 24.9 s to 21.5 s.</p>
+  <h4 style="margin:26px 0 4px;font-size:16px">GR00T N1.6 (H = 16, h = 9, r = 1.1)</h4>
+  <div class="tbl-wrap"><table><thead><tr><th class="l" rowspan="2">Task</th><th colspan="2" class="group">Success rate ↑</th><th colspan="2" class="group">Calls / ep ↓</th><th colspan="2" class="group">Time / ep (s) ↓</th></tr>
+<tr><th>Baseline</th><th class="ours">Ours</th><th>Baseline</th><th class="ours">Ours</th><th>Baseline</th><th class="ours">Ours</th></tr></thead><tbody>
+<tr><td class="l">Soccer ball → plate (layout 1)</td><td>10/10</td><td class="ours">10/10</td><td>56.8</td><td class="ours">50.3</td><td>17.8</td><td class="ours">17.7</td></tr>
+<tr><td class="l">Soccer ball → plate (layout 2)</td><td>8/10</td><td class="ours">9/10<span class="up">▲</span></td><td>102.2</td><td class="ours">81.7</td><td>31.5</td><td class="ours">28.8</td></tr>
+<tr><td class="l">Basketball → basket</td><td>8/10</td><td class="ours">8/10</td><td>95.6</td><td class="ours">69.9</td><td>29.6</td><td class="ours">24.3</td></tr>
+<tr><td class="l">Baseball → basket</td><td>8/10</td><td class="ours">8/10</td><td>107.9</td><td class="ours">82.3</td><td>33.1</td><td class="ours">28.9</td></tr>
+<tr class="sep"><td class="l"><b>Total / mean</b></td><td><b>34/40</b></td><td class="ours"><b>35/40</b></td><td><b>90.6</b></td><td class="ours"><b>71.0</b></td><td><b>28.0</b></td><td class="ours"><b>24.9</b></td></tr>
+</tbody></table></div>
+  <p class="tcap"><b>Table 4.</b> Real-world results with GR00T N1.6 on the four pick-and-place tasks, 10 episodes per task. Success 34/40 → 35/40, policy calls per episode 90.6 → 71.0, time per episode 28.0 s → 24.9 s. The short chunk (H = 16) caps the achievable ratio.</p>
+
+</section>
+
+<footer>
+  Videos are shown at reduced resolution.
+</footer>
+
+<script>
+const MANIFEST = {"pi05_soccer-plate": {"model": "π0.5", "instruction": "pick up the soccer ball and place it on the plate", "base_succ": 10, "ours_succ": 10, "base_calls": 26.5, "ours_calls": 27.0, "base_hz": 1.87, "ours_hz": 1.54, "nexec": 19.1, "baseline": {"file": "static/videos/pi05_soccer-plate__baseline__ep02.mp4", "ep": "ep02", "ok": true, "calls": 26, "dur": 14.5, "hz": 1.79, "nexec": null}, "ours": {"file": "static/videos/pi05_soccer-plate__ours-r125__ep02.mp4", "ep": "ep02", "ok": true, "calls": 22, "dur": 14.1, "hz": 1.56, "nexec": 19.4}}, "pi05_soccer-plate-rev": {"model": "π0.5", "instruction": "pick up the soccer ball and place it on the plate", "base_succ": 10, "ours_succ": 10, "base_calls": 37.0, "ours_calls": 21.0, "base_hz": 1.92, "ours_hz": 1.61, "nexec": 18.7, "baseline": {"file": "static/videos/pi05_soccer-plate-rev__baseline__ep09.mp4", "ep": "ep09", "ok": true, "calls": 38, "dur": 19.3, "hz": 1.97, "nexec": null}, "ours": {"file": "static/videos/pi05_soccer-plate-rev__ours-r125__ep10.mp4", "ep": "ep10", "ok": true, "calls": 19, "dur": 11.3, "hz": 1.69, "nexec": 18.6}}, "pi05_basketball-basket": {"model": "π0.5", "instruction": "pick up the basket ball and place it on the basket", "base_succ": 10, "ours_succ": 10, "base_calls": 32.0, "ours_calls": 25.0, "base_hz": 1.89, "ours_hz": 1.57, "nexec": 18.9, "baseline": {"file": "static/videos/pi05_basketball-basket__baseline__ep03.mp4", "ep": "ep03", "ok": true, "calls": 32, "dur": 16.6, "hz": 1.92, "nexec": null}, "ours": {"file": "static/videos/pi05_basketball-basket__ours-r125__ep02.mp4", "ep": "ep02", "ok": true, "calls": 23, "dur": 14.4, "hz": 1.6, "nexec": 19.0}}, "pi05_baseball-basket": {"model": "π0.5", "instruction": "pick up the baseball ball and place it on the basket", "base_succ": 10, "ours_succ": 10, "base_calls": 31.5, "ours_calls": 25.0, "base_hz": 1.88, "ours_hz": 1.56, "nexec": 18.7, "baseline": {"file": "static/videos/pi05_baseball-basket__baseline__ep10.mp4", "ep": "ep10", "ok": true, "calls": 31, "dur": 16.4, "hz": 1.89, "nexec": null}, "ours": {"file": "static/videos/pi05_baseball-basket__ours-r125__ep07.mp4", "ep": "ep07", "ok": true, "calls": 22, "dur": 14.2, "hz": 1.55, "nexec": 18.6}}, "pi05_drawer-blackball": {"model": "π0.5", "instruction": "open the drawer, pick up the black ball, put it in the drawer, and close the drawer", "base_succ": 8, "ours_succ": 10, "base_calls": 61.5, "ours_calls": 48.0, "base_hz": 1.98, "ours_hz": 1.59, "nexec": 18.7, "baseline": {"file": "static/videos/pi05_drawer-blackball__baseline__ep01.mp4", "ep": "ep01", "ok": true, "calls": 59, "dur": 29.8, "hz": 1.98, "nexec": null}, "ours": {"file": "static/videos/pi05_drawer-blackball__ours-r125__ep09.mp4", "ep": "ep09", "ok": true, "calls": 44, "dur": 27.5, "hz": 1.6, "nexec": 18.9}, "showcase": [{"baseline": {"file": "static/videos/pi05_drawer-blackball__baseline__ep07.mp4", "ep": "ep07", "ok": false, "calls": 100, "dur": 60.0, "hz": 1.99, "nexec": null}, "ours": {"file": "static/videos/pi05_drawer-blackball__ours-r125__ep07.mp4", "ep": "ep07", "ok": true, "calls": 48, "dur": 29.9, "hz": 1.61, "nexec": 18.4}}, {"baseline": {"file": "static/videos/pi05_drawer-blackball__baseline__ep08.mp4", "ep": "ep08", "ok": false, "calls": 119, "dur": 60.0, "hz": 1.98, "nexec": null}, "ours": {"file": "static/videos/pi05_drawer-blackball__ours-r125__ep08.mp4", "ep": "ep08", "ok": true, "calls": 49, "dur": 30.9, "hz": 1.59, "nexec": 18.9}}]}, "pi05_drawer-basketball": {"model": "π0.5", "instruction": "open the drawer, pick up the basket ball, put it in the drawer, and close the drawer", "base_succ": 8, "ours_succ": 8, "base_calls": 61.5, "ours_calls": 41.5, "base_hz": 1.95, "ours_hz": 1.59, "nexec": 18.7, "baseline": {"file": "static/videos/pi05_drawer-basketball__baseline__ep05.mp4", "ep": "ep05", "ok": true, "calls": 65, "dur": 34.3, "hz": 1.9, "nexec": null}, "ours": {"file": "static/videos/pi05_drawer-basketball__ours-r125__ep02.mp4", "ep": "ep02", "ok": true, "calls": 38, "dur": 24.0, "hz": 1.58, "nexec": 18.9}}, "pi05_drawer-baseball-basket": {"model": "π0.5", "instruction": "open the drawer, pick up the baseball ball, place it in the basket, and close the drawer", "base_succ": 7, "ours_succ": 9, "base_calls": 59.0, "ours_calls": 40.0, "base_hz": 1.98, "ours_hz": 1.59, "nexec": 18.6, "baseline": {"file": "static/videos/pi05_drawer-baseball-basket__baseline__ep07.mp4", "ep": "ep07", "ok": true, "calls": 54, "dur": 27.1, "hz": 2.0, "nexec": null}, "ours": {"file": "static/videos/pi05_drawer-baseball-basket__ours-r125__ep01.mp4", "ep": "ep01", "ok": true, "calls": 38, "dur": 24.4, "hz": 1.56, "nexec": 18.9}, "showcase": [{"baseline": {"file": "static/videos/pi05_drawer-baseball-basket__baseline__ep02.mp4", "ep": "ep02", "ok": false, "calls": 86, "dur": 60.0, "hz": 1.99, "nexec": null}, "ours": {"file": "static/videos/pi05_drawer-baseball-basket__ours-r125__ep02.mp4", "ep": "ep02", "ok": true, "calls": 39, "dur": 25.0, "hz": 1.56, "nexec": 18.8}}, {"baseline": {"file": "static/videos/pi05_drawer-baseball-basket__baseline__ep08.mp4", "ep": "ep08", "ok": false, "calls": 119, "dur": 60.0, "hz": 1.98, "nexec": null}, "ours": {"file": "static/videos/pi05_drawer-baseball-basket__ours-r125__ep08.mp4", "ep": "ep08", "ok": true, "calls": 44, "dur": 27.1, "hz": 1.62, "nexec": 18.4}}]}, "pi05_drawer-basketball-pot": {"model": "π0.5", "instruction": "open the drawer, pick up the basket ball, place it in the pot, and close the drawer", "base_succ": 9, "ours_succ": 10, "base_calls": 53.5, "ours_calls": 42.0, "base_hz": 1.98, "ours_hz": 1.6, "nexec": 18.7, "baseline": {"file": "static/videos/pi05_drawer-basketball-pot__baseline__ep05.mp4", "ep": "ep05", "ok": true, "calls": 53, "dur": 26.4, "hz": 2.01, "nexec": null}, "ours": {"file": "static/videos/pi05_drawer-basketball-pot__ours-r125__ep05.mp4", "ep": "ep05", "ok": true, "calls": 40, "dur": 25.3, "hz": 1.58, "nexec": 19.0}, "showcase": [{"baseline": {"file": "static/videos/pi05_drawer-basketball-pot__baseline__ep06.mp4", "ep": "ep06", "ok": false, "calls": 61, "dur": 60.0, "hz": 1.98, "nexec": null}, "ours": {"file": "static/videos/pi05_drawer-basketball-pot__ours-r125__ep06.mp4", "ep": "ep06", "ok": true, "calls": 65, "dur": 40.5, "hz": 1.6, "nexec": 18.9}}]}, "groot_soccer-plate": {"model": "GR00T N1.6", "instruction": "pick up the soccer ball and place it on the plate", "base_succ": 10, "ours_succ": 10, "base_calls": 52.5, "ours_calls": 45.0, "base_hz": 3.2, "ours_hz": 2.85, "nexec": 10.3, "baseline": {"file": "static/videos/groot_soccer-plate__baseline__ep05.mp4", "ep": "ep05", "ok": true, "calls": 55, "dur": 17.1, "hz": 3.21, "nexec": null}, "ours": {"file": "static/videos/groot_soccer-plate__ours-r110__ep08.mp4", "ep": "ep08", "ok": true, "calls": 37, "dur": 13.0, "hz": 2.85, "nexec": 10.4}}, "groot_soccer-plate-rev": {"model": "GR00T N1.6", "instruction": "pick up the soccer ball and place it on the plate", "base_succ": 8, "ours_succ": 9, "base_calls": 88.5, "ours_calls": 75.5, "base_hz": 3.24, "ours_hz": 2.83, "nexec": 10.4, "baseline": {"file": "static/videos/groot_soccer-plate-rev__baseline__ep01.mp4", "ep": "ep01", "ok": true, "calls": 81, "dur": 25.2, "hz": 3.21, "nexec": null}, "ours": {"file": "static/videos/groot_soccer-plate-rev__ours-r110__ep10.mp4", "ep": "ep10", "ok": true, "calls": 64, "dur": 22.6, "hz": 2.83, "nexec": 10.3}, "showcase": [{"baseline": {"file": "static/videos/groot_soccer-plate-rev__baseline__ep03.mp4", "ep": "ep03", "ok": false, "calls": 197, "dur": 60.0, "hz": 3.28, "nexec": null}, "ours": {"file": "static/videos/groot_soccer-plate-rev__ours-r110__ep03.mp4", "ep": "ep03", "ok": true, "calls": 129, "dur": 45.7, "hz": 2.82, "nexec": 10.3}}]}, "groot_basketball-basket": {"model": "GR00T N1.6", "instruction": "pick up the basket ball and place it on the basket", "base_succ": 8, "ours_succ": 8, "base_calls": 78.5, "ours_calls": 61.0, "base_hz": 3.22, "ours_hz": 2.88, "nexec": 10.3, "baseline": {"file": "static/videos/groot_basketball-basket__baseline__ep10.mp4", "ep": "ep10", "ok": true, "calls": 79, "dur": 24.6, "hz": 3.22, "nexec": null}, "ours": {"file": "static/videos/groot_basketball-basket__ours-r110__ep02.mp4", "ep": "ep02", "ok": true, "calls": 47, "dur": 16.2, "hz": 2.91, "nexec": 10.4}}, "groot_baseball-basket": {"model": "GR00T N1.6", "instruction": "pick up the baseball ball and place it on the basket", "base_succ": 8, "ours_succ": 8, "base_calls": 87.5, "ours_calls": 72.0, "base_hz": 3.25, "ours_hz": 2.83, "nexec": 10.4, "baseline": {"file": "static/videos/groot_baseball-basket__baseline__ep05.mp4", "ep": "ep05", "ok": true, "calls": 82, "dur": 25.2, "hz": 3.26, "nexec": null}, "ours": {"file": "static/videos/groot_baseball-basket__ours-r110__ep01.mp4", "ep": "ep01", "ok": true, "calls": 62, "dur": 22.0, "hz": 2.81, "nexec": 10.4}, "showcase": [{"baseline": {"file": "static/videos/groot_baseball-basket__baseline__ep06.mp4", "ep": "ep06", "ok": false, "calls": 176, "dur": 60.0, "hz": 3.29, "nexec": null}, "ours": {"file": "static/videos/groot_baseball-basket__ours-r110__ep06.mp4", "ep": "ep06", "ok": true, "calls": 70, "dur": 24.5, "hz": 2.85, "nexec": 10.3}}]}};
+// === PAIR SYNC (experimental). Set to false to revert to independent looping videos. ===
+const PAIR_SYNC = true;
+
+const TASK_NAME = {
+  "soccer-plate":"Soccer ball → plate (layout 1)",
+  "soccer-plate-rev":"Soccer ball → plate (layout 2)",
+  "basketball-basket":"Basketball → basket",
+  "baseball-basket":"Baseball → basket",
+  "drawer-blackball":"Drawer: black ball → drawer",
+  "drawer-basketball":"Drawer: basketball → drawer",
+  "drawer-baseball-basket":"Drawer: baseball → basket",
+  "drawer-basketball-pot":"Drawer: basketball → pot",
+};
+const ORDER = ["pi05_soccer-plate","pi05_soccer-plate-rev","pi05_basketball-basket","pi05_baseball-basket",
+  "pi05_drawer-blackball","pi05_drawer-basketball","pi05_drawer-baseball-basket","pi05_drawer-basketball-pot",
+  "groot_soccer-plate","groot_soccer-plate-rev","groot_basketball-basket","groot_baseball-basket"];
+const taskOf = k => TASK_NAME[k.replace(/^(pi05|groot)_/,"")];
+
+function vid(e, kind, brief){
+  const p = e.file.replace("videos/","posters/").replace(".mp4",".jpg");
+  return `<div class="cell">
+    <video muted ${PAIR_SYNC?"":"loop"} playsinline preload="none" poster="${p}" data-src="${e.file}" data-ok="${e.ok?1:0}"></video>
+    ${PAIR_SYNC?`<div class="done"><span>${e.ok?`✓ Task completed · ${e.dur.toFixed(1)} s`:"✕ Failed · 60 s time limit"}</span></div>`:""}
+    <span class="tag ${kind}">${kind==="ours"?"Action Upcycling":"Baseline"}</span>
+    <span class="badge ${e.ok?"ok":"fail"}">${e.ok?"success":"failure"}</span>
+    <div class="stat">${e.calls} VLA calls · ${e.dur.toFixed(1)} s${brief?"":` · ${e.hz} Hz`}</div>
+  </div>`;
+}
+
+// hero
+(function(){
+  const m = MANIFEST["pi05_drawer-blackball"]; const pr = m.showcase[1];
+  document.getElementById("hero-instr").textContent = m.instruction;
+  document.getElementById("hero").innerHTML = vid(pr.baseline,"base",true)+vid(pr.ours,"ours",true);
+})();
+
+// ===== Method animation =====
+(function(){
+  const svg=document.getElementById("anim"); if(!svg) return;
+  const NS="http://www.w3.org/2000/svg";
+  const el=(n,a,parent)=>{const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);(parent||svg).appendChild(e);return e;};
+  const txt=(x,y,s,a,parent)=>{const e=el("text",Object.assign({x,y,"font-size":12,fill:"#1a1a1a"},a||{}),parent);e.textContent=s;return e;};
+
+  // scenario
+  const H=16,h=5,T=60,TAU=0.30;
+  const X0=230,TW=8.5,BW=7.3,RH=12,BH=10;
+  const stdStarts=[];for(let s=0;s<T;s+=h)stdStarts.push(s);
+  const hex=[8,6,10,7,9,8,6,10,5,9,7,8]; const ourStarts=[];{let s=0;for(const e of hex){ourStarts.push(s);s+=e;}}
+  const rnd=(i,k)=>{const x=Math.sin(i*12.9898+k*78.233)*43758.5453;return x-Math.floor(x);};
+  const sig=hex.map((e,i)=>{const c=[];let acc=0;for(let k=h+1;k<=H;k++){let inc;
+    if(k<=e)inc=0.025+0.025*rnd(i,k);else if(k===e+1)inc=(TAU-acc)+0.10+0.12*rnd(i,k);else inc=0.10+0.15*rnd(i,k);
+    acc+=inc;c.push(acc);}return c;});
+
+  const C={blue:"#2f6fed",blueL:"#c7d7fb",green:"#1f8a4c",greenL:"#bfe3cc",grey:"#e3e5e8",greyS:"#c9cdd3",fail:"#c62828",mut:"#5f6368"};
+
+  const defs=el("defs",{}); const cp=el("clipPath",{id:"laneClip"},defs); el("rect",{x:0,y:0,width:X0+T*TW+3,height:390},cp);
+  const mk=el("marker",{id:"obsArrow",viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"6",markerHeight:"6",orient:"auto-start-reverse"},defs); el("path",{d:"M0 0L10 5L0 10z",fill:"#9aa0a6"},mk);
+  // static labels
+  txt(20,24,"Standard protocol",{"font-size":15,"font-weight":600});
+  txt(190,24,`execute h = ${h} of H = ${H}, discard the tail, re-query on a fixed clock`,{"font-size":12,fill:C.mut});
+  txt(20,228,"Action Upcycling",{"font-size":15,"font-weight":600});
+  txt(180,228,"execute h, then keep executing the tail while c",{"font-size":12,fill:C.mut});
+  const tk=txt(180+ 288,228,"",{"font-size":12,fill:C.mut}); tk.innerHTML='<tspan baseline-shift="sub" font-size="9">k</tspan> ≤ τ; re-query when the gate stops';
+  // axes (control ticks)
+  for(const y0 of [40,244]){el("line",{x1:X0,y1:y0,x2:X0+T*TW,y2:y0,stroke:"#d5d5d5"});
+    for(let t=0;t<=T;t+=10){el("line",{x1:X0+t*TW,y1:y0-3,x2:X0+t*TW,y2:y0+3,stroke:"#9aa0a6"});txt(X0+t*TW,y0-6,t,{"font-size":9.5,fill:C.mut,"text-anchor":"middle"});}
+    txt(X0+T*TW+6,y0+4,"tick",{"font-size":9.5,fill:C.mut});
+    txt(X0-12,y0+9,"calls ▾",{"font-size":9.5,fill:C.mut,"text-anchor":"end"});}
+
+  // rows
+  function policyBox(yTop,color){
+    const g=el("g",{});
+    // observation blocks feeding the policy
+    // group label: observation o_t above the two input blocks
+    const ol=txt(42,yTop-24,"",{"font-size":9.5,fill:C.mut,"text-anchor":"middle","font-weight":600},g); ol.innerHTML='observation o<tspan dy="1.6" font-size="7">t</tspan>';
+    const sensors=[["image",yTop-16,"o"],["state",yTop+32,"q"]].map(([name,y,sym],i)=>{
+      const r=el("rect",{x:14,y,width:56,height:28,rx:7,fill:"#fff",stroke:"#c9cdd3","stroke-width":1.2},g);
+      const t=txt(42,y+18,name,{"font-size":11,"font-weight":600,"text-anchor":"middle",fill:"#333"},g);
+      const y1=y+14, y2=yTop+(i===0?14:30);
+      const p=el("path",{d:`M70 ${y1} C82 ${y1}, 82 ${y2}, 94 ${y2}`,fill:"none",stroke:"#c9cdd3","stroke-width":1.4,"marker-end":"url(#obsArrow)"},g);
+      const dot=el("circle",{r:3.2,fill:color,opacity:0},g);
+      return {r,t,p,dot,y1,y2};
+    });
+    const box=el("rect",{x:96,y:yTop,width:70,height:44,rx:9,fill:"#fff",stroke:"#c9cdd3","stroke-width":1.5},g);
+    const t1=txt(131,yTop+18,"Policy π",{"font-size":12,"font-weight":600,"text-anchor":"middle"},g);
+    const t2=txt(131,yTop+33,"idle",{"font-size":10.5,fill:C.mut,"text-anchor":"middle","font-family":"JetBrains Mono,monospace"},g);
+    return {box,t1,t2,color,sensors,ol};
+  }
+  function makeLane(starts,yTop,isOurs,axisY,color){
+    const rows=starts.map((s,i)=>{const g=el("g",{"clip-path":"url(#laneClip)"});const y=yTop+i*RH;
+      const label=txt(X0-11,y+8.5,`call ${i+1}`,{"font-size":9,fill:C.mut,"text-anchor":"end","font-weight":500},g);
+      const ring=el("circle",{cx:X0+s*TW-5,cy:y+BH/2,r:2.5,fill:"none",stroke:color,"stroke-width":1.5,opacity:0},g);
+      el("circle",{cx:X0+s*TW-5,cy:y+BH/2,r:2.5,fill:"#222"},g);
+      const mark=el("path",{d:`M${X0+s*TW-3.5} ${axisY+2} l3.5 6 l3.5 -6 z`,fill:color,opacity:0});
+      const blocks=[];for(let j=1;j<=H;j++){blocks.push(el("rect",{x:X0+(s+j-1)*TW,y,width:BW,height:BH,rx:1.5},g));}
+      return {g,s,blocks,label,ring,mark,e:isOurs?hex[i]:h};});
+    return {rows,pb:policyBox(yTop+ (isOurs?26:50),color)};
+  }
+  const stdL=makeLane(stdStarts,50,false,40,C.blue), ourL=makeLane(ourStarts,254,true,244,C.green);
+  const std=stdL.rows, our=ourL.rows;
+  const OBS=0.35, INFER=0.95;
+  function flashBox(pb,rows,tt){
+    let age=Infinity;for(const r of rows){if(tt>=r.s)age=Math.min(age,tt-r.s);}
+    const observing=age<OBS, on=age>=OBS&&age<INFER;
+    // sensors light up and a sample travels along each arrow into the policy
+    pb.sensors.forEach(s=>{
+      s.r.setAttribute("fill",observing?pb.color:"#fff");s.r.setAttribute("stroke",observing?pb.color:"#c9cdd3");
+      s.t.setAttribute("fill",observing?"#fff":"#333");
+      s.p.setAttribute("stroke",observing?pb.color:"#c9cdd3");
+      if(observing){const u=age/OBS; // cubic bezier from (70,y1) via (82,y1),(82,y2) to (94,y2)
+        const x=(1-u)**3*70+3*(1-u)**2*u*82+3*(1-u)*u*u*82+u**3*94, y=(1-u)**3*s.y1+3*(1-u)**2*u*s.y1+3*(1-u)*u*u*s.y2+u**3*s.y2;
+        s.dot.setAttribute("cx",x);s.dot.setAttribute("cy",y);s.dot.setAttribute("opacity",1);}
+      else s.dot.setAttribute("opacity",0);});
+    pb.ol.setAttribute("fill",observing?pb.color:C.mut);
+    pb.box.setAttribute("fill",on?pb.color:"#fff");pb.box.setAttribute("stroke",on?pb.color:(observing?pb.color:"#c9cdd3"));
+    pb.t1.setAttribute("fill",on?"#fff":"#1a1a1a");pb.t2.setAttribute("fill",on?"#fff":C.mut);
+    pb.t2.textContent=on?`→ ${H} actions`:(observing?"observing…":"idle");
+  }
+  function pulse(rows,tt){for(const r of rows){const age=tt-r.s;
+    if(age>=0&&age<0.9){r.ring.setAttribute("opacity",1-age/0.9);r.ring.setAttribute("r",2.5+age*14);}else r.ring.setAttribute("opacity",0);
+    r.mark.setAttribute("opacity",tt>=r.s?1:0);}}
+
+  // right panel: scoreboard
+  const PX=768;
+  el("rect",{x:PX,y:8,width:222,height:96,rx:10,fill:"#fff",stroke:"#e6e6e6"});
+  txt(PX+111,28,"VLA calls so far",{"font-size":12.5,"font-weight":600,"text-anchor":"middle"});
+  txt(PX+16,58,"Standard",{"font-size":12,fill:C.mut}); const nStd=txt(PX+206,62,"0",{"font-size":22,"font-weight":700,"text-anchor":"end",fill:C.blue});
+  txt(PX+16,88,"Action Upcycling",{"font-size":12,fill:C.mut}); const nOur=txt(PX+206,92,"0",{"font-size":22,"font-weight":700,"text-anchor":"end",fill:C.green});
+  const ratio=txt(PX+111,122,"",{"font-size":13,"font-weight":600,"text-anchor":"middle",fill:C.green});
+
+  // right panel: signal plot
+  const PY=140,PH=200; el("rect",{x:PX,y:PY,width:222,height:PH,rx:10,fill:"#fff",stroke:"#e6e6e6"});
+  const pTitle=txt(PX+111,PY+20,"tail signal of the current chunk",{"font-size":12.5,"font-weight":600,"text-anchor":"middle"});
+  const ax=PX+34,ay=PY+PH-34,aw=176,ah=110; const kx=k=>ax+(k-(h+1))*(aw/(H-h-1)); const cy=c=>ay-Math.min(c,1)*ah;
+  el("line",{x1:ax,y1:ay,x2:ax+aw+6,y2:ay,stroke:"#9aa0a6"}); el("line",{x1:ax,y1:ay,x2:ax,y2:ay-ah-8,stroke:"#9aa0a6"});
+  for(const k of [6,8,10,12,14,16]) txt(kx(k),ay+13,k,{"font-size":9.5,fill:C.mut,"text-anchor":"middle"});
+  txt(ax+aw/2,ay+26,"tail action k",{"font-size":10,fill:C.mut,"text-anchor":"middle"});
+  const cl=txt(ax-8,ay-ah-2,"",{"font-size":10,fill:C.mut,"text-anchor":"end"}); cl.innerHTML='c<tspan baseline-shift="sub" font-size="8">k</tspan>';
+  el("line",{x1:ax,y1:cy(TAU),x2:ax+aw+6,y2:cy(TAU),stroke:C.fail,"stroke-dasharray":"4 3"}); txt(ax+aw+4,cy(TAU)-4,"τ",{"font-size":11,fill:C.fail,"text-anchor":"end","font-weight":600});
+  const okBand=el("rect",{x:ax,y:ay-ah-8,width:0,height:ah+8,fill:C.green,opacity:.08});
+  const line=el("polyline",{fill:"none",stroke:C.green,"stroke-width":2.5,points:""});
+  const dots=[];for(let k=h+1;k<=H;k++)dots.push(el("circle",{cx:kx(k),cy:ay,r:3.2,fill:C.green,opacity:0}));
+  const cut=el("line",{x1:0,y1:ay,x2:0,y2:ay-ah-8,stroke:C.green,"stroke-dasharray":"3 3",opacity:0});
+  const cutL=txt(0,ay-ah-14,"",{"font-size":10.5,fill:C.green,"text-anchor":"middle","font-weight":600});
+  const stopL=txt(0,0,"",{"font-size":10.5,fill:C.fail,"font-weight":600});
+
+  // playhead
+  const ph=el("line",{x1:X0,y1:36,x2:X0,y2:368,stroke:"#222","stroke-width":1.5,opacity:.8});
+  const phL=txt(X0,380,"",{"font-size":10,fill:"#222","text-anchor":"middle","font-weight":600});
+
+  // legend
+  const lg=el("g",{transform:"translate(230,206)"});
+  [[C.blue,"executed prefix"],[C.green,"upcycled tail"],[C.grey,"discarded",C.greyS],["#222","policy call",null,true]].forEach(([c,s,st,dot],i)=>{const x=i*150;
+    if(dot)el("circle",{cx:x+6,cy:6,r:3,fill:c},lg);else el("rect",{x,y:0,width:13,height:12,rx:2,fill:c,stroke:st||"none","stroke-dasharray":st?"3 2":"none"},lg);
+    txt(x+19,10,s,{"font-size":11,fill:C.mut},lg);});
+
+  const status=document.getElementById("anim-status");
+  const DECIDE=0.7, TPS=4; let t=0,last=null,playing=true,speed=1,hold=0,visible=true;
+  function block(r,fill,stroke,dash){r.setAttribute("fill",fill);r.setAttribute("stroke",stroke||"none");r.setAttribute("stroke-dasharray",dash?"2 1.5":"none");}
+  function render(){
+    const tt=Math.min(t,T);
+    // lanes
+    std.forEach(row=>{const on=tt>=row.s;row.g.style.display=on?"":"none";if(!on)return;
+      row.blocks.forEach((r,idx)=>{const j=idx+1;if(j<=h)block(r,tt>=row.s+j?C.blue:C.blueL);else block(r,C.grey,C.greyS,"3 2");});});
+    our.forEach(row=>{const on=tt>=row.s;row.g.style.display=on?"":"none";if(!on)return;const decided=tt>=row.s+DECIDE;
+      row.blocks.forEach((r,idx)=>{const j=idx+1;
+        if(j<=h)block(r,tt>=row.s+j?C.blue:C.blueL);
+        else if(!decided)block(r,"#f1f2f4","#d5d5d5");
+        else if(j<=row.e)block(r,tt>=row.s+j?C.green:C.greenL);
+        else block(r,C.grey,C.greyS,"3 2");});});
+    flashBox(stdL.pb,std,tt);flashBox(ourL.pb,our,tt);pulse(std,tt);pulse(our,tt);
+    // playhead
+    const px=X0+tt*TW; ph.setAttribute("x1",px);ph.setAttribute("x2",px);phL.setAttribute("x",px);phL.textContent=`t = ${Math.floor(tt)}`;
+    // counters
+    const ns=stdStarts.filter(s=>s<=tt).length, no=ourStarts.filter(s=>s<=tt).length;
+    nStd.textContent=ns; nOur.textContent=no;
+    ratio.textContent = t>=T ? `${ns} → ${no} calls  (${(ns/no).toFixed(2)}× fewer)` : "";
+    // signal plot for current ours chunk
+    let ci=-1;for(let i=0;i<ourStarts.length;i++)if(ourStarts[i]<=tt)ci=i;
+    if(ci<0){line.setAttribute("points","");dots.forEach(d=>d.setAttribute("opacity",0));cut.setAttribute("opacity",0);cutL.textContent="";stopL.textContent="";okBand.setAttribute("width",0);}
+    else{const s=ourStarts[ci],e=hex[ci],c=sig[ci];const p=Math.max(0,Math.min(1,(tt-s)/DECIDE));const n=Math.floor(p*c.length);
+      pTitle.textContent=`tail signal, call ${ci+1}`;
+      const pts=[`${ax},${ay}`];for(let i=0;i<n;i++){pts.push(`${kx(h+1+i)},${cy(c[i])}`);}
+      line.setAttribute("points",pts.join(" "));
+      dots.forEach((d,i)=>{d.setAttribute("opacity",i<n?1:0);d.setAttribute("cy",cy(c[i]));d.setAttribute("fill",c[i]<=TAU?C.green:C.fail);});
+      const shown=n>=(e-h)+1||p>=1;
+      cut.setAttribute("opacity",shown?1:0);cut.setAttribute("x1",kx(e));cut.setAttribute("x2",kx(e));
+      okBand.setAttribute("width",shown?Math.max(0,kx(e)-ax):0);
+      cutL.textContent=shown?`h_exec = ${e}`:""; cutL.setAttribute("x",kx(e));
+      if(shown&&e<H){ stopL.textContent="stop";stopL.setAttribute("x",kx(e+1)+5);stopL.setAttribute("y",cy(c[e-h])-6);}else stopL.textContent="";
+      // status line
+      if(t>=T) status.textContent=`Same ${T} control ticks: ${ns} calls vs ${no} calls → r = ${(ns/no).toFixed(2)}`;
+      else if(tt<s+DECIDE) status.textContent=`call ${ci+1}: chunk predicted → compute c_k on the tail (no execution yet)`;
+      else if(tt<s+h) status.textContent=`call ${ci+1}: c_k ≤ τ for ${e-h} tail action${e-h===1?"":"s"} → plan to execute ${e} of ${H}; executing prefix`;
+      else if(tt<s+e) status.textContent=`call ${ci+1}: executing upcycled tail (${Math.min(Math.floor(tt-s),e)} / ${e})`;
+      else status.textContent=`call ${ci+1}: gate stopped at ${e} → re-query the policy`;}
+  }
+  function frame(now){if(last===null)last=now;const dt=(now-last)/1000;last=now;
+    if(playing&&visible){ if(t<T){t=Math.min(T,t+dt*TPS*speed);} else {hold+=dt; if(hold>2.5/speed){t=0;hold=0;}} }
+    render(); requestAnimationFrame(frame);}
+  render(); requestAnimationFrame(frame);
+  const playBtn=document.getElementById("anim-play");
+  playBtn.onclick=()=>{playing=!playing;playBtn.textContent=playing?"Pause":"Play";};
+  document.getElementById("anim-replay").onclick=()=>{t=0;hold=0;playing=true;playBtn.textContent="Pause";};
+  document.querySelector(".aspeed").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;speed=+b.dataset.s;document.querySelectorAll(".aspeed button").forEach(x=>x.classList.toggle("active",x===b));});
+  // pause when off-screen (does not override the user's Play/Pause choice)
+  new IntersectionObserver(es=>es.forEach(en=>{visible=en.isIntersecting;}),{threshold:0.1}).observe(svg);
+})();
+
+// playback speed (shared by every video on the page)
+let RATE = 1;
+function setRate(r){
+  RATE = r;
+  document.querySelectorAll('video').forEach(v=>{ v.playbackRate = r; });
+  document.querySelectorAll('.speed button').forEach(b=>b.classList.toggle('active', +b.dataset.r===r));
+}
+document.querySelectorAll('.speed').forEach(s=>s.addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) setRate(+b.dataset.r); }));
+// lazy autoplay
+const io = new IntersectionObserver(es=>{ es.forEach(en=>{ const v=en.target;
+  if(en.isIntersecting){ if(!v.src){ v.src=v.dataset.src; v.load(); } v.playbackRate=RATE; v.play().catch(()=>{}); }
+  else { v.pause(); } }); },{rootMargin:"200px 0px"});
+function observeVideos(root){ (root||document).querySelectorAll("video[data-src]").forEach(v=>io.observe(v)); }
+observeVideos();
+document.addEventListener('loadedmetadata', e=>{ if(e.target.tagName==='VIDEO') e.target.playbackRate=RATE; }, true);
+
+// === PAIR SYNC block (remove together with the flag above to revert) ===
+if(PAIR_SYNC){
+  // when a video ends: freeze on its last frame and show the overlay; once every video of the pair has ended, restart all together
+  document.addEventListener('ended', e=>{
+    const v=e.target; if(v.tagName!=='VIDEO') return;
+    const cell=v.closest('.cell'), pair=v.closest('.pair'); if(!pair) return;
+    const ov=cell&&cell.querySelector('.done'); if(ov) ov.classList.add('show');
+    const vids=[...pair.querySelectorAll('video')];
+    const allDone=vids.every(x=>x.ended || !x.src || x.readyState===0);
+    if(allDone){ setTimeout(()=>{ vids.forEach(x=>{ const o=x.closest('.cell')?.querySelector('.done'); if(o) o.classList.remove('show'); if(x.src){ x.currentTime=0; x.playbackRate=RATE; x.play().catch(()=>{}); } }); }, 900); }
+  }, true);
+  // when a pair scrolls back into view, start its videos from the same point
+  document.addEventListener('play', e=>{
+    const v=e.target; if(v.tagName!=='VIDEO') return; const pair=v.closest('.pair'); if(!pair) return;
+    pair.querySelectorAll('video').forEach(x=>{ if(x!==v && x.src && x.paused && !x.ended){ x.play().catch(()=>{}); } });
+  }, true);
+}
+
+// paged carousel (4 cards per page), shared by showcase and all-tasks
+function pagedCarousel({view,prev,next,dots,items,card,chip,pageSize=4}){
+  let page=0;
+  function render(){
+    const its=items(); const n=Math.max(1,Math.ceil(its.length/pageSize)); page=(page+n)%n;
+    const slice=its.slice(page*pageSize,(page+1)*pageSize);
+    view.innerHTML=slice.map((it,i)=>card(it,page*pageSize+i,its.length)).join("");
+    dots.innerHTML=`<span class="cpage">page ${page+1} / ${n}</span>`+its.map((it,i)=>`<button class="cdot${Math.floor(i/pageSize)===page?" active":""}" data-i="${i}">${chip(it)}</button>`).join("");
+    prev.style.visibility=next.style.visibility=n>1?"visible":"hidden";
+    observeVideos(view);
+  }
+  prev.onclick=()=>{page--;render();}; next.onclick=()=>{page++;render();};
+  dots.addEventListener("click",e=>{const d=e.target.closest(".cdot"); if(d){page=Math.floor(+d.dataset.i/pageSize); render();}});
+  return {render, reset(){page=0;render();}};
+}
+const g=id=>document.getElementById(id);
+
+// showcase: baseline failure vs ours success
+(function(){
+  const items=[]; ORDER.forEach(k=>{const m=MANIFEST[k]; if(!m.showcase) return;
+    m.showcase.forEach(pr=>{ if(pr.ours.ok && !pr.baseline.ok) items.push({k,m,pr}); });});
+  pagedCarousel({view:g("showcase"),prev:g("sprev"),next:g("snext"),dots:g("sdots"),items:()=>items,
+    card:({k,m,pr},i,n)=>`<div class="task"><div class="title">${m.model} · ${taskOf(k)}<span class="cidx">${i+1} / ${n}</span></div>
+        <div class="meta">"${m.instruction}" · ${pr.ours.ep}</div>
+        <div class="pair">${vid(pr.baseline,"base")}${vid(pr.ours,"ours")}</div></div>`,
+    chip:({k,m,pr})=>`${m.model==="π0.5"?"π0.5":"GR00T"} · ${taskOf(k)} · ${pr.ours.ep}`}).render();
+})();
+
+// all tasks with model tabs
+(function(){
+  const models=["π0.5","GR00T N1.6"]; const tabs=g("tabs"); let model=models[0];
+  const car=pagedCarousel({view:g("grid"),prev:g("cprev"),next:g("cnext"),dots:g("cdots"),
+    items:()=>ORDER.filter(k=>MANIFEST[k].model===model),
+    card:(k,i,n)=>{const m=MANIFEST[k]; return `<div class="task"><div class="title">${taskOf(k)} <span class="muted" style="font-weight:400">· ${m.baseline.dur.toFixed(1)} s → <span style="color:var(--ours)">${m.ours.dur.toFixed(1)} s</span></span><span class="cidx">${i+1} / ${n}</span></div>
+        <div class="meta">"${m.instruction}"</div>
+        <div class="pair">${vid(m.baseline,"base")}${vid(m.ours,"ours")}</div></div>`;},
+    chip:k=>taskOf(k)});
+  tabs.innerHTML=models.map(m=>`<button class="tab" data-m="${m}">${m}</button>`).join("");
+  function setModel(m){model=m; tabs.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.m===m)); car.reset();}
+  tabs.addEventListener("click",e=>{const t=e.target.closest(".tab"); if(t) setModel(t.dataset.m);});
+  setModel(models[0]);
+})();
+
+// call bars
+(function(){
+  const rows=[
+   ["LIBERO",[["π0.5",32.4,21.9],["SmolVLA",19.3,14.7],["GR00T N1.7",22.6,15.0],["FastWAM",15.7,13.4]]],
+   ["LIBERO-Plus",[["π0.5",38.5,23.9],["SmolVLA",29.4,24.1],["GR00T N1.7",36.4,22.7],["FastWAM",33.4,22.5]]],
+   ["RoboTwin 2.0",[["π0.5",40.9,29.8],["SmolVLA",50.6,29.7],["FastWAM",10.6,8.7]]]];
+  const max=52; let html="";
+  rows.forEach(([b,rs])=>{ html+=`<div class="bar-group"><h5>${b}</h5>`;
+    rs.forEach(([m,a,o])=>{ html+=`<div class="bar-row"><span class="lab">${m}</span><div><div class="bar base" style="width:${a/max*100}%"></div><div class="bar" style="width:${o/max*100}%;margin-top:3px"></div></div><span class="val">${(a/o).toFixed(2)}×</span></div>`; });
+    html+=`</div>`; });
+  document.getElementById("bars").innerHTML=html;
+})();
+
+document.addEventListener("DOMContentLoaded",()=>{ if(window.renderMathInElement) renderMathInElement(document.body,{delimiters:[{left:"\\[",right:"\\]",display:true},{left:"\\(",right:"\\)",display:false}]}); });
+</script>
+</body>
+</html>
